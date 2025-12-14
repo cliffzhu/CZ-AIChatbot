@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import type { Message, InteractionMessage, StreamingEvent } from 'chat-shared-schema'
+import type { Message, InteractionMessage, StreamingEvent, Theme } from 'chat-shared-schema'
+import './CSS_Reference.css'
 import './App.css'
 
 interface AppProps {
@@ -28,14 +29,33 @@ function App({}: AppProps) {
         console.error('Failed to get token:', error);
       }
     };
+
+    // Get theme from config
+    const getTheme = async () => {
+      try {
+        const response = await fetch('http://localhost:3000/widget/123/config');
+        const config = await response.json();
+        if (config.theme) {
+          // Apply theme variables to :root
+          Object.entries(config.theme).forEach(([key, value]) => {
+            document.documentElement.style.setProperty(`--${key}`, String(value));
+          });
+        }
+      } catch (error) {
+        console.error('Failed to get theme:', error);
+      }
+    };
+
     getToken();
+    getTheme();
 
     // Listen for theme updates
     const handleMessage = (event: MessageEvent) => {
       if (event.data.type === 'setTheme') {
-        // Apply theme
-        Object.entries(event.data.theme).forEach(([key, value]) => {
-          document.documentElement.style.setProperty(`--${key}`, value as string)
+        // Apply theme variables to :root
+        const theme: Theme = event.data.theme
+        Object.entries(theme).forEach(([key, value]) => {
+          document.documentElement.style.setProperty(`--${key}`, String(value))
         })
       }
     }
@@ -164,12 +184,17 @@ function App({}: AppProps) {
   const MessageComponent = ({ message }: { message: Message }) => {
     switch (message.type) {
       case 'text':
-        return <div className="message text">{message.content}</div>
+        return <div className="message bot">{message.content}</div>
       case 'image':
-        return <img src={message.url} alt={message.alt} className="message image" />
+        return (
+          <div className="message bot">
+            <img src={message.url} alt={message.alt} className="message image" />
+            {message.caption && <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '4px' }}>{message.caption}</div>}
+          </div>
+        )
       case 'buttons':
         return (
-          <div className="message buttons">
+          <div className="message bot buttons">
             {message.options.map((opt, idx) => (
               <button key={idx} onClick={() => handleInteraction(message.id, opt.value)}>
                 {opt.text}
@@ -179,23 +204,26 @@ function App({}: AppProps) {
         )
       case 'form':
         return (
-          <form className="message form" onSubmit={(e) => handleFormSubmit(e, message.id)}>
-            {message.fields.map((field, idx) => (
-              <div key={idx}>
-                <label>{field.label}</label>
-                {field.type === 'textarea' ? (
-                  <textarea name={field.name} required={field.required} />
-                ) : field.type === 'select' ? (
-                  <select name={field.name} required={field.required}>
-                    {field.options?.map((opt, i) => <option key={i} value={opt}>{opt}</option>)}
-                  </select>
-                ) : (
-                  <input type={field.type} name={field.name} required={field.required} />
-                )}
-              </div>
-            ))}
-            <button type="submit">{message.submitLabel || 'Submit'}</button>
-          </form>
+          <div className="message bot">
+            <form className="message form" onSubmit={(e) => handleFormSubmit(e, message.id)}>
+              {message.fields.map((field, idx) => (
+                <div key={idx} style={{ marginBottom: '8px' }}>
+                  <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500' }}>{field.label}</label>
+                  {field.type === 'textarea' ? (
+                    <textarea name={field.name} required={field.required} rows={3} />
+                  ) : field.type === 'select' ? (
+                    <select name={field.name} required={field.required}>
+                      <option value="">Select...</option>
+                      {field.options?.map((opt, i) => <option key={i} value={opt}>{opt}</option>)}
+                    </select>
+                  ) : (
+                    <input type={field.type} name={field.name} required={field.required} />
+                  )}
+                </div>
+              ))}
+              <button type="submit">{message.submitLabel || 'Submit'}</button>
+            </form>
+          </div>
         )
       case 'error':
         return <div className="message error">{message.message}</div>
@@ -205,27 +233,39 @@ function App({}: AppProps) {
   }
 
   return (
-    <div className="chat-container">
-      <div className="chat-header">
-        <h2>Chat</h2>
+    <div className="chatbot-widget">
+      <div className="chatbot-header">
+        <div className="chatbot-title">AI Assistant</div>
+        <div className="chatbot-controls">×</div>
       </div>
-      <div className="chat-messages">
-        {messages.map((msg, idx) => (
-          <MessageComponent key={idx} message={msg} />
-        ))}
-        {isStreaming && <div className="streaming-indicator">Assistant is typing...</div>}
+      <div className="chatbot-body">
+        <div className="chatbot-description">
+          Hi! I'm here to help you. How can I assist you today?
+        </div>
+        <div className="support-buttons">
+          <a href="#" className="btn secondary">Help Center</a>
+          <a href="#" className="btn secondary">Contact Support</a>
+        </div>
+        <div className="chat-messages" style={{ marginTop: '16px' }}>
+          {messages.map((msg, idx) => (
+            <MessageComponent key={idx} message={msg} />
+          ))}
+          {isStreaming && <div className="streaming-indicator">Assistant is typing...</div>}
+        </div>
       </div>
-      <form className="chat-input" onSubmit={handleSubmit}>
-        <input
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Type a message..."
-          disabled={isStreaming}
-        />
-        <button type="submit" disabled={isStreaming}>Send</button>
+      <div className="chatbot-footer">
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flex: 1, gap: '8px' }}>
+          <input
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Type your message..."
+            disabled={isStreaming}
+          />
+          <button className="send-btn" type="submit" disabled={isStreaming}>→</button>
+        </form>
         {isStreaming && <button type="button" onClick={cancelStream}>Cancel</button>}
-      </form>
+      </div>
     </div>
   )
 }

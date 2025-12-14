@@ -2,9 +2,32 @@ import express from 'express';
 import cors from 'cors';
 import bodyParser from 'body-parser';
 import jwt from 'jsonwebtoken';
+import type { WidgetConfig, Theme } from 'chat-shared-schema';
 
 const app = express();
 const PORT = 3000;
+
+// Mock data
+const defaultTheme: Theme = {
+  primary: '#2563eb',
+  primaryHover: '#1e4fd8',
+  bg: '#ffffff',
+  bgSoft: '#f3f4f6',
+  text: '#111827',
+  muted: '#6b7280',
+  border: '#e5e7eb',
+  radius: '14px',
+  radiusSm: '10px',
+  shadow: '0 10px 30px rgba(0, 0, 0, 0.08)',
+  font: '"Inter", system-ui, -apple-system, sans-serif'
+};
+
+const widgetConfigs: Record<string, WidgetConfig> = {
+  '123': {
+    allowedOrigins: ['http://localhost:5173', 'https://example.com'],
+    theme: defaultTheme
+  }
+};
 
 // Middleware
 app.use(cors({

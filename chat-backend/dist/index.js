@@ -9,6 +9,26 @@ const body_parser_1 = __importDefault(require("body-parser"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const app = (0, express_1.default)();
 const PORT = 3000;
+// Mock data
+const defaultTheme = {
+    primary: '#2563eb',
+    primaryHover: '#1e4fd8',
+    bg: '#ffffff',
+    bgSoft: '#f3f4f6',
+    text: '#111827',
+    muted: '#6b7280',
+    border: '#e5e7eb',
+    radius: '14px',
+    radiusSm: '10px',
+    shadow: '0 10px 30px rgba(0, 0, 0, 0.08)',
+    font: '"Inter", system-ui, -apple-system, sans-serif'
+};
+const widgetConfigs = {
+    '123': {
+        allowedOrigins: ['http://localhost:5173', 'https://example.com'],
+        theme: defaultTheme
+    }
+};
 // Middleware
 app.use((0, cors_1.default)({
     origin: (origin, callback) => {

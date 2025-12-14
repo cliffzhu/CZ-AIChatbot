@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CZ AI Chatbot Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>CZ AI Chatbot Integration Test</h1>
+
+        <div class="test-section">
+            <h2>Backend Status</h2>
+            <p>Backend should be running on <strong>http://localhost:3000</strong></p>
+            <button onclick="testBackend()">Test Backend Config</button>
+            <div id="backend-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>Iframe App</h2>
+            <p>Iframe should be running on <strong>http://localhost:5173</strong></p>
+            <iframe src="http://localhost:5173" width="400" height="600" style="border: 1px solid #ccc;"></iframe>
+        </div>
+
+        <div class="test-section">
+            <h2>Theme Testing</h2>
+            <p>Test theme loading from backend config</p>
+            <button onclick="testTheme()">Load Theme</button>
+            <button onclick="applyCustomTheme()">Apply Custom Theme</button>
+            <div id="theme-result"></div>
+        </div>
+    </div>
+
+    <script>
+        async function testBackend() {
+            try {
+                const response = await fetch('http://localhost:3000/widget/123/config');
+                const data = await response.json();
+                document.getElementById('backend-result').innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+            } catch (error) {
+                document.getElementById('backend-result').innerHTML = '<p style="color: red;">Error: ' + error.message + '</p>';
+            }
+        }
+
+        function loadWidget() {
+            // Load the loader script
+            const script = document.createElement('script');
+            script.src = './chat-widget-loader/dist/loader.min.js';
+            script.onload = () => {
+                document.getElementById('loader-result').innerHTML = '<p style="color: green;">Loader script loaded successfully!</p>';
+            };
+            script.onerror = () => {
+                document.getElementById('loader-result').innerHTML = '<p style="color: red;">Failed to load loader script.</p>';
+            };
+            document.head.appendChild(script);
+        }
+
+        async function testTheme() {
+            try {
+                const response = await fetch('http://localhost:3000/widget/123/config');
+                const config = await response.json();
+                document.getElementById('theme-result').innerHTML = '<pre>' + JSON.stringify(config.theme, null, 2) + '</pre>';
+            } catch (error) {
+                document.getElementById('theme-result').innerHTML = '<p style="color: red;">Error: ' + error.message + '</p>';
+            }
+        }
+
+        function applyCustomTheme() {
+            const iframe = document.querySelector('iframe');
+            if (iframe && iframe.contentWindow) {
+                const customTheme = {
+                    primary: '#ff6b6b',
+                    primaryHover: '#ff5252',
+                    bg: '#2d3436',
+                    bgSoft: '#636e72',
+                    text: '#ffffff',
+                    muted: '#b2bec3',
+                    border: '#636e72',
+                    radius: '12px',
+                    radiusSm: '8px',
+                    shadow: '0 8px 24px rgba(0, 0, 0, 0.3)',
+                    font: '"Inter", system-ui, sans-serif'
+                };
+                iframe.contentWindow.postMessage({ type: 'setTheme', theme: customTheme }, '*');
+                document.getElementById('theme-result').innerHTML = '<p style="color: green;">Custom theme applied to iframe!</p>';
+            }
+        }
+    </script>
+</body>
+</html>

@@ -65,4 +65,21 @@ export interface TokenResponse {
     token: string;
     expiresAt: number;
 }
+export interface Theme {
+    primary: string;
+    primaryHover: string;
+    bg: string;
+    bgSoft: string;
+    text: string;
+    muted: string;
+    border: string;
+    radius: string;
+    radiusSm: string;
+    shadow: string;
+    font: string;
+}
+export interface WidgetConfig {
+    allowedOrigins: string[];
+    theme: Theme;
+}
 //# sourceMappingURL=index.d.ts.map
