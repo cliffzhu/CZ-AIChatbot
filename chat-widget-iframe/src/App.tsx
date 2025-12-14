@@ -3,6 +3,121 @@ import type { Message, InteractionMessage, StreamingEvent, Theme } from 'chat-sh
 import './CSS_Reference.css'
 import './App.css'
 
+// Simple logging utility
+const logger = {
+  info: (message: string, data?: any) => {
+    console.log(`[INFO] ${message}`, data);
+    // In production, send to logging service
+  },
+  error: (message: string, error?: any) => {
+    console.error(`[ERROR] ${message}`, error);
+    // In production, send to error tracking service
+  },
+  performance: (metric: string, value: number) => {
+    console.log(`[PERF] ${metric}: ${value}ms`);
+    // In production, send to metrics service
+  }
+};
+
+interface ImageComponentProps {
+  src: string
+  alt?: string
+  width?: number
+  height?: number
+  caption?: string
+}
+
+const ImageComponent = ({ src, alt, width, height, caption }: ImageComponentProps) => {
+  const [loaded, setLoaded] = useState(false)
+  const [error, setError] = useState(false)
+
+  useEffect(() => {
+    const img = new Image()
+    img.onload = () => setLoaded(true)
+    img.onerror = () => setError(true)
+    img.src = src
+  }, [src])
+
+  const maxWidth = 300
+  const maxHeight = 200
+
+  const aspectRatio = width && height ? width / height : 1
+  const displayWidth = Math.min(width || maxWidth, maxWidth)
+  const displayHeight = Math.min(height || (displayWidth / aspectRatio), maxHeight)
+
+  if (error) {
+    return (
+      <div className="image-fallback" style={{
+        width: displayWidth,
+        height: displayHeight,
+        background: 'var(--bg-soft)',
+        border: '1px solid var(--border)',
+        borderRadius: 'var(--radius-sm)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: 'var(--muted)',
+        fontSize: '12px'
+      }}>
+        Failed to load image
+      </div>
+    )
+  }
+
+  return (
+    <div className="image-container">
+      {!loaded && (
+        <div className="image-placeholder" style={{
+          width: displayWidth,
+          height: displayHeight,
+          background: 'var(--bg-soft)',
+          borderRadius: 'var(--radius-sm)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
+          <div className="loading-spinner" style={{
+            width: '20px',
+            height: '20px',
+            border: '2px solid var(--border)',
+            borderTop: '2px solid var(--primary)',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite'
+          }} />
+        </div>
+      )}
+      <img
+        src={src}
+        alt={alt}
+        style={{
+          width: displayWidth,
+          height: displayHeight,
+          objectFit: 'cover',
+          borderRadius: 'var(--radius-sm)',
+          display: loaded ? 'block' : 'none'
+        }}
+        loading="lazy"
+      />
+      {caption && (
+        <div style={{
+          fontSize: '12px',
+          color: 'var(--muted)',
+          marginTop: '4px',
+          textAlign: 'center'
+        }}>
+          {caption}
+        </div>
+      )}
+      <style>{`
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      `}</style>
+    </div>
+  )
+}
+
 interface AppProps {
   config?: any
 }
@@ -17,22 +132,28 @@ function App({}: AppProps) {
   useEffect(() => {
     // Get token on init
     const getToken = async () => {
+      const startTime = Date.now();
       try {
+        logger.info('Requesting auth token');
         const response = await fetch('http://localhost:3000/runtime/token', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ widgetId: 'test123', origin: window.location.origin })
+          body: JSON.stringify({ widgetId: '123', origin: window.location.origin })
         });
         const data = await response.json();
         setToken(data.token);
+        logger.performance('token_request', Date.now() - startTime);
+        logger.info('Auth token received');
       } catch (error) {
-        console.error('Failed to get token:', error);
+        logger.error('Failed to get token', error);
       }
     };
 
     // Get theme from config
     const getTheme = async () => {
+      const startTime = Date.now();
       try {
+        logger.info('Loading theme configuration');
         const response = await fetch('http://localhost:3000/widget/123/config');
         const config = await response.json();
         if (config.theme) {
@@ -40,14 +161,54 @@ function App({}: AppProps) {
           Object.entries(config.theme).forEach(([key, value]) => {
             document.documentElement.style.setProperty(`--${key}`, String(value));
           });
+          logger.performance('theme_load', Date.now() - startTime);
+          logger.info('Theme applied', config.theme);
         }
       } catch (error) {
-        console.error('Failed to get theme:', error);
+        logger.error('Failed to get theme', error);
       }
     };
 
     getToken();
     getTheme();
+
+    // Mobile UX: Prevent body scroll when widget is open
+    const preventBodyScroll = (e: TouchEvent) => {
+      const target = e.target as HTMLElement;
+      if (target && target.closest && target.closest('.chatbot-widget')) {
+        e.stopPropagation();
+      } else {
+        e.preventDefault();
+      }
+    };
+
+    // Handle keyboard show/hide on mobile
+    const handleResize = () => {
+      const viewport = window.visualViewport;
+      if (viewport) {
+        const heightDiff = window.innerHeight - viewport.height;
+        if (heightDiff > 150) { // Keyboard is likely shown
+          document.body.style.paddingBottom = `${heightDiff}px`;
+        } else {
+          document.body.style.paddingBottom = '0px';
+        }
+      }
+    };
+
+    // Orientation change handling
+    const handleOrientationChange = () => {
+      // Force layout recalculation
+      setTimeout(() => {
+        window.dispatchEvent(new Event('resize'));
+      }, 100);
+    };
+
+    // Add mobile event listeners
+    if ('visualViewport' in window && window.visualViewport) {
+      window.visualViewport.addEventListener('resize', handleResize);
+    }
+    window.addEventListener('orientationchange', handleOrientationChange);
+    document.addEventListener('touchmove', preventBodyScroll, { passive: false });
 
     // Listen for theme updates
     const handleMessage = (event: MessageEvent) => {
@@ -60,23 +221,65 @@ function App({}: AppProps) {
       }
     }
     window.addEventListener('message', handleMessage)
-    return () => window.removeEventListener('message', handleMessage)
+
+    return () => {
+      if ('visualViewport' in window && window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', handleResize);
+      }
+      window.removeEventListener('orientationchange', handleOrientationChange);
+      document.removeEventListener('touchmove', preventBodyScroll);
+      window.removeEventListener('message', handleMessage);
+    }
   }, [])
 
   const handleInteraction = (interactionId: string, selection: string) => {
+    logger.info('User interaction', { interactionId, selection });
     const interaction: InteractionMessage = { type: 'interaction', interactionId, selection }
-    // TODO: Send to backend
-    console.log('Interaction:', interaction)
+    // Send to backend
+    sendInteraction(interaction)
   }
 
   const handleFormSubmit = (e: React.FormEvent<HTMLFormElement>, interactionId: string) => {
+    logger.info('Form submitted', { interactionId });
     e.preventDefault()
     const formData = new FormData(e.currentTarget)
     const values: Record<string, any> = {}
     formData.forEach((value, key) => { values[key] = value })
     const interaction: InteractionMessage = { type: 'interaction', interactionId, values }
-    // TODO: Send to backend
-    console.log('Form interaction:', interaction)
+    // Send to backend
+    sendInteraction(interaction)
+    // Clear form
+    e.currentTarget.reset()
+  }
+
+  const sendInteraction = async (interaction: InteractionMessage) => {
+    if (!token) {
+      logger.error('No auth token for interaction');
+      return;
+    }
+
+    try {
+      await streamingPost(
+        'http://localhost:3000/runtime/query',
+        { message: interaction },
+        (event) => {
+          if (event.type === 'delta' && event.content) {
+            // Handle streaming text
+          } else if (event.type === 'message' && event.message) {
+            setMessages(prev => [...prev, event.message!])
+          } else if (event.type === 'done') {
+            // Interaction complete
+          } else if (event.type === 'error') {
+            setMessages(prev => [...prev, { type: 'error', code: 'interaction_error', message: event.error || 'Interaction failed' }])
+          }
+        },
+        token,
+        new AbortController()
+      )
+    } catch (error) {
+      logger.error('Interaction send failed', error);
+      setMessages(prev => [...prev, { type: 'error', code: 'network_error', message: 'Failed to send interaction' }])
+    }
   }
 
   const streamingPost = async (
@@ -129,39 +332,46 @@ function App({}: AppProps) {
   }
 
   const sendMessage = async (content: string) => {
-    setMessages(prev => [...prev, { type: 'text', content }])
-    setInput('')
-    setIsStreaming(true)
+    const startTime = Date.now();
+    logger.info('Sending message', { content: content.substring(0, 50) });
 
-    const controller = new AbortController()
-    setAbortController(controller)
-    // TODO: Get token
-    // TODO: Use real URL
+    setMessages(prev => [...prev, { type: 'text', content }]);
+    setInput('');
+    setIsStreaming(true);
+
+    const controller = new AbortController();
+    setAbortController(controller);
+
     try {
       await streamingPost(
         'http://localhost:3000/runtime/query',
         { message: content },
         (event) => {
           if (event.type === 'delta' && event.content) {
-            // TODO: Handle streaming text
+            // Handle streaming text
           } else if (event.type === 'message' && event.message) {
-            setMessages(prev => [...prev, event.message!])
+            setMessages(prev => [...prev, event.message!]);
+            logger.info('Received message', { type: event.message!.type });
           } else if (event.type === 'done') {
-            setIsStreaming(false)
-            setAbortController(null)
+            setIsStreaming(false);
+            setAbortController(null);
+            const duration = Date.now() - startTime;
+            logger.performance('message_roundtrip', duration);
           } else if (event.type === 'error') {
-            setMessages(prev => [...prev, { type: 'error', code: 'stream_error', message: event.error || 'Streaming error' }])
-            setIsStreaming(false)
-            setAbortController(null)
+            setMessages(prev => [...prev, { type: 'error', code: 'stream_error', message: event.error || 'Streaming error' }]);
+            setIsStreaming(false);
+            setAbortController(null);
+            logger.error('Streaming error', event.error);
           }
         },
         token || undefined,
         controller
-      )
+      );
     } catch (error) {
-      setMessages(prev => [...prev, { type: 'error', code: 'network_error', message: 'Failed to send message' }])
-      setIsStreaming(false)
-      setAbortController(null)
+      logger.error('Message send failed', error);
+      setMessages(prev => [...prev, { type: 'error', code: 'network_error', message: 'Failed to send message' }]);
+      setIsStreaming(false);
+      setAbortController(null);
     }
   }
 
@@ -188,15 +398,24 @@ function App({}: AppProps) {
       case 'image':
         return (
           <div className="message bot">
-            <img src={message.url} alt={message.alt} className="message image" />
-            {message.caption && <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '4px' }}>{message.caption}</div>}
+            <ImageComponent
+              src={message.url}
+              alt={message.alt}
+              width={message.width}
+              height={message.height}
+              caption={message.caption}
+            />
           </div>
         )
       case 'buttons':
         return (
           <div className="message bot buttons">
             {message.options.map((opt, idx) => (
-              <button key={idx} onClick={() => handleInteraction(message.id, opt.value)}>
+              <button
+                key={idx}
+                onClick={() => handleInteraction(message.id, opt.value)}
+                className="btn secondary"
+              >
                 {opt.text}
               </button>
             ))}
@@ -207,21 +426,40 @@ function App({}: AppProps) {
           <div className="message bot">
             <form className="message form" onSubmit={(e) => handleFormSubmit(e, message.id)}>
               {message.fields.map((field, idx) => (
-                <div key={idx} style={{ marginBottom: '8px' }}>
-                  <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500' }}>{field.label}</label>
+                <div key={idx} style={{ marginBottom: '12px' }}>
+                  <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500', color: 'var(--text)' }}>
+                    {field.label}
+                    {field.required && <span style={{ color: 'var(--primary)' }}> *</span>}
+                  </label>
                   {field.type === 'textarea' ? (
-                    <textarea name={field.name} required={field.required} rows={3} />
+                    <textarea
+                      name={field.name}
+                      required={field.required}
+                      rows={3}
+                      placeholder={`Enter ${field.label.toLowerCase()}...`}
+                      style={{ width: '100%', resize: 'vertical' }}
+                    />
                   ) : field.type === 'select' ? (
-                    <select name={field.name} required={field.required}>
-                      <option value="">Select...</option>
+                    <select name={field.name} required={field.required} style={{ width: '100%' }}>
+                      <option value="">Select {field.label.toLowerCase()}...</option>
                       {field.options?.map((opt, i) => <option key={i} value={opt}>{opt}</option>)}
                     </select>
+                  ) : field.type === 'checkbox' ? (
+                    <input type="checkbox" name={field.name} required={field.required} />
                   ) : (
-                    <input type={field.type} name={field.name} required={field.required} />
+                    <input
+                      type={field.type}
+                      name={field.name}
+                      required={field.required}
+                      placeholder={`Enter ${field.label.toLowerCase()}...`}
+                      style={{ width: '100%' }}
+                    />
                   )}
                 </div>
               ))}
-              <button type="submit">{message.submitLabel || 'Submit'}</button>
+              <button type="submit" className="btn primary" style={{ width: '100%' }}>
+                {message.submitLabel || 'Submit'}
+              </button>
             </form>
           </div>
         )
