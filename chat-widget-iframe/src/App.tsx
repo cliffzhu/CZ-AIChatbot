@@ -11,8 +11,25 @@ function App({}: AppProps) {
   const [input, setInput] = useState('')
   const [isStreaming, setIsStreaming] = useState(false)
   const [abortController, setAbortController] = useState<AbortController | null>(null)
+  const [token, setToken] = useState<string | null>(null)
 
   useEffect(() => {
+    // Get token on init
+    const getToken = async () => {
+      try {
+        const response = await fetch('http://localhost:3000/runtime/token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ widgetId: 'test123', origin: window.location.origin })
+        });
+        const data = await response.json();
+        setToken(data.token);
+      } catch (error) {
+        console.error('Failed to get token:', error);
+      }
+    };
+    getToken();
+
     // Listen for theme updates
     const handleMessage = (event: MessageEvent) => {
       if (event.data.type === 'setTheme') {
@@ -102,7 +119,7 @@ function App({}: AppProps) {
     // TODO: Use real URL
     try {
       await streamingPost(
-        'http://localhost:3000/runtime/query', // placeholder
+        'http://localhost:3000/runtime/query',
         { message: content },
         (event) => {
           if (event.type === 'delta' && event.content) {
@@ -118,7 +135,7 @@ function App({}: AppProps) {
             setAbortController(null)
           }
         },
-        undefined, // token
+        token || undefined,
         controller
       )
     } catch (error) {
