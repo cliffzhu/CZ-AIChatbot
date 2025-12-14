@@ -1,1 +1,1 @@
-# CZ-AIChatbot
+chat-widget-loader, chat-widget-iframe, chat-backend, chat-shared-schema. Define tech stack: React/Preact/Solid for UI, fetch + ReadableStream for streaming, Cloudflare Workers/Node Edge for backend, JWT/HttpOnly cookies for auth, GitHub Actions for CI/CD.

@@ -1,0 +1,17 @@
+{
+  "name": "chat-widget-loader",
+  "version": "1.0.0",
+  "description": "Minimal host script for embedding the chatbot iframe",
+  "main": "dist/loader.js",
+  "scripts": {
+    "build": "tsc && terser dist/index.js -o dist/loader.min.js",
+    "dev": "tsc --watch"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "terser": "^5.0.0"
+  },
+  "files": [
+    "dist/loader.min.js"
+  ]
+}

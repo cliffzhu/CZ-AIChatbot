@@ -1,0 +1,169 @@
+"use strict";
+// chat-widget-loader/src/index.ts
+class ChatWidgetLoader {
+    constructor(config) {
+        this.iframe = null;
+        this.isOpen = false;
+        this.button = null;
+        this.config = Object.assign({ position: 'bottom-right' }, config);
+        this.init();
+    }
+    init() {
+        this.createButton();
+        this.createIframe();
+        window.addEventListener('message', this.handleMessage.bind(this));
+        if (this.config.open) {
+            this.open();
+        }
+    }
+    createButton() {
+        if (this.config.hideButton)
+            return;
+        this.button = document.createElement('button');
+        this.button.innerText = 'Chat';
+        this.button.style.position = 'fixed';
+        this.button.style.bottom = '20px';
+        this.button.style.right = '20px';
+        this.button.style.zIndex = '9999';
+        this.button.addEventListener('click', () => this.toggle());
+        document.body.appendChild(this.button);
+    }
+    createIframe() {
+        this.iframe = document.createElement('iframe');
+        this.iframe.src = `${this.config.host || 'https://chat-widget-iframe.example.com'}?widgetId=${this.config.widgetId}`;
+        this.iframe.style.position = 'fixed';
+        this.iframe.style.border = 'none';
+        this.iframe.style.zIndex = '10000';
+        this.iframe.style.display = 'none';
+        this.applyPositioning();
+        document.body.appendChild(this.iframe);
+    }
+    applyPositioning() {
+        if (!this.iframe)
+            return;
+        const pos = this.config.position;
+        const offsets = this.config.offsets || {};
+        const x = offsets.x || 20;
+        const y = offsets.y || 20;
+        if (this.isMobile()) {
+            // Fullscreen for mobile
+            this.iframe.style.width = '100vw';
+            this.iframe.style.height = '100vh';
+            this.iframe.style.top = '0';
+            this.iframe.style.left = '0';
+            this.lockScroll();
+        }
+        else {
+            // Desktop floating
+            this.iframe.style.width = '400px';
+            this.iframe.style.height = '600px';
+            if (pos.includes('bottom')) {
+                this.iframe.style.bottom = `${y}px`;
+            }
+            else {
+                this.iframe.style.top = `${y}px`;
+            }
+            if (pos.includes('right')) {
+                this.iframe.style.right = `${x}px`;
+            }
+            else {
+                this.iframe.style.left = `${x}px`;
+            }
+        }
+    }
+    isMobile() {
+        return window.innerWidth < 768;
+    }
+    lockScroll() {
+        document.body.style.overflow = 'hidden';
+    }
+    unlockScroll() {
+        document.body.style.overflow = '';
+    }
+    open() {
+        if (this.isOpen)
+            return;
+        this.isOpen = true;
+        if (this.iframe) {
+            this.iframe.style.display = 'block';
+            this.applyPositioning();
+            this.sendToIframe({ type: 'init', config: this.config });
+        }
+        if (this.button)
+            this.button.style.display = 'none';
+    }
+    close() {
+        if (!this.isOpen)
+            return;
+        this.isOpen = false;
+        if (this.iframe) {
+            this.iframe.style.display = 'none';
+            this.unlockScroll();
+        }
+        if (this.button)
+            this.button.style.display = 'block';
+    }
+    toggle() {
+        if (this.isOpen) {
+            this.close();
+        }
+        else {
+            this.open();
+        }
+    }
+    sendToIframe(data) {
+        if (this.iframe && this.iframe.contentWindow) {
+            this.iframe.contentWindow.postMessage(data, this.config.host || '*');
+        }
+    }
+    handleMessage(event) {
+        var _a;
+        if (event.source !== ((_a = this.iframe) === null || _a === void 0 ? void 0 : _a.contentWindow))
+            return;
+        const data = event.data;
+        switch (data.type) {
+            case 'ready':
+                // Iframe is ready
+                break;
+            case 'requestOpen':
+                this.open();
+                break;
+            case 'resize':
+                // Handle resize if needed
+                break;
+            case 'error':
+                console.error('Chat widget error:', data.message);
+                break;
+            default:
+                // Relay or handle other messages
+                break;
+        }
+    }
+    // Public API for programmatic control
+    setOpen(open) {
+        if (open) {
+            this.open();
+        }
+        else {
+            this.close();
+        }
+    }
+    setTheme(theme) {
+        this.sendToIframe({ type: 'setTheme', theme });
+    }
+}
+// Auto-init from script attributes
+const script = document.currentScript;
+if (script) {
+    const config = {
+        widgetId: script.getAttribute('data-widget-id') || '',
+        host: script.getAttribute('data-host') || undefined,
+        position: script.getAttribute('data-position') || 'bottom-right',
+        open: script.hasAttribute('data-open'),
+        hideButton: script.hasAttribute('data-hide-button'),
+        // Parse other attributes
+    };
+    if (config.widgetId) {
+        new ChatWidgetLoader(config);
+    }
+}
