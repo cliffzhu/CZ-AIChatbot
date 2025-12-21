@@ -83,32 +83,14 @@ jobs:
           commit_message: "Publish site for ${{ github.ref_name }}"
 
       - name: Smoke test published pages
-        env:
-          OWNER: ${{ github.repository_owner }}
-          REPO: ${{ github.repository }}
-          VERSION: ${{ github.event.release.tag_name || github.ref_name }}
         run: |
-          REPO_NAME=${REPO#*/}
-          PAGES_BASE="https://${OWNER}.github.io/${REPO_NAME}/${VERSION}"
-          LATEST_BASE="https://${OWNER}.github.io/${REPO_NAME}/latest"
-          echo "Checking ${PAGES_BASE} and ${LATEST_BASE}"
-          # retry helper
-          retry() {
-            local n=0
-            until [ $n -ge 12 ]
-            do
-              "$@" && break
-              n=$((n+1))
-              sleep 5
-            done
-            if [ $n -ge 12 ]; then
-              echo "Command failed after retries: $@"; exit 1
-            fi
-          }
-          retry curl -sfS ${PAGES_BASE}/loader/loader.min.js -o /dev/null
-          retry curl -sfS ${PAGES_BASE}/iframe/index.html -o /dev/null
-          retry curl -sfS ${LATEST_BASE}/loader/loader.min.js -o /dev/null
-          retry curl -sfS ${LATEST_BASE}/iframe/index.html -o /dev/null
+          # derive repo name and call the centralized smoke-test script
+          REPO_FULL="${{ github.repository }}"
+          REPO_NAME=${REPO_FULL#*/}
+          VERSION="${{ github.event.release.tag_name || github.ref_name }}"
+          echo "Running smoke-test for ${REPO_FULL} ${VERSION}"
+          chmod +x scripts/smoke-test-published.sh
+          ./scripts/smoke-test-published.sh "${{ github.repository_owner }}" "$REPO_NAME" "$VERSION" --wait 30 --attempts 18 --delay 10
 
       - name: Update `docs/latest` in repository and open PR
         env:
