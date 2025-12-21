@@ -109,3 +109,24 @@ jobs:
           retry curl -sfS ${PAGES_BASE}/iframe/index.html -o /dev/null
           retry curl -sfS ${LATEST_BASE}/loader/loader.min.js -o /dev/null
           retry curl -sfS ${LATEST_BASE}/iframe/index.html -o /dev/null
+
+      - name: Update `docs/latest` in repository and open PR
+        env:
+          VERSION: ${{ github.event.release.tag_name || github.ref_name }}
+        run: |
+          # Prepare workspace and run docs update script which creates a branch and pushes it
+          chmod +x scripts/update-docs-latest.sh
+          ./scripts/update-docs-latest.sh "${VERSION}"
+
+      - name: Create Pull Request for docs update
+        uses: peter-evans/create-pull-request@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "chore(docs): publish ${{ github.event.release.tag_name || github.ref_name }} to docs/latest"
+          branch: "docs/update-${{ github.event.release.tag_name || github.ref_name }}"
+          title: "Publish docs for ${{ github.event.release.tag_name || github.ref_name }}"
+          body: |-
+            Automatic docs update publishing distribution for ${{ github.event.release.tag_name || github.ref_name }}.
+            - Renames existing `docs/latest` to next `V#` if present
+            - Copies new artifacts into `docs/latest`
+          base: main
