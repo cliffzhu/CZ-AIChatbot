@@ -104,8 +104,12 @@ Widgets are configured via the backend `/widget/:id/config` endpoint:
     "primaryHover": "#1e4fd8",
     "bg": "#ffffff",
     "bgSoft": "#f3f4f6",
-    "text": "#111827",
+ **Puppeteer for E2E testing**
     "muted": "#6b7280",
+## Issue #25 Summary
+
+Added a concise summary for Content Security Policy (CSP) recommendations, a versioned GitHub Pages/static CDN structure, and fork customization guidance: see [docs/issue-25-summary.md](docs/issue-25-summary.md).
+
     "border": "#e5e7eb",
     "radius": "14px",
     "radiusSm": "10px",
@@ -163,6 +167,45 @@ The widget uses versioned CDN distribution for optimal performance:
 - **Loader**: `https://cdn.yourdomain.com/v1/loader.min.js`
 - **Iframe**: `https://cdn.yourdomain.com/v1/iframe/`
 - **Assets**: Cached with long TTL, versioned URLs for cache busting
+
+### Publishing via Tag or Release
+
+- Create a tag matching `vX.Y.Z` and push it to trigger the GitHub Actions workflow which will build artifacts and publish them to the `gh-pages` branch under `out/vX.Y.Z/`.
+
+Example:
+
+```bash
+# create and push a tag
+git tag v1.2.0
+git push origin v1.2.0
+```
+
+- Alternatively, create a GitHub Release (published) for the tag — the workflow also triggers on release `published` events.
+
+- After publishing, confirm the files are available at `https://<user>.github.io/<repo>/v1.2.0/iframe/` and `.../v1.2.0/loader/` or from your configured CDN.
+
+Standalone Distribution
+
+- The repo can publish a `standalone` distribution that bundles the `iframe` app and `loader` together under a single path. The workflow will publish this under `/vX.Y.Z/standalone/` and `/latest/standalone/`.
+
+Example standalone files:
+
+- `https://<user>.github.io/<repo>/v1.2.0/standalone/iframe/index.html`
+- `https://<user>.github.io/<repo>/v1.2.0/standalone/loader/loader.min.js`
+
+To prepare the standalone build locally:
+
+```bash
+# Build components
+cd chat-shared-schema && npm ci && npm run build
+cd ../chat-widget-iframe && npm ci && npm run build
+cd ../chat-widget-loader && npm ci && npm run build
+
+# Assemble standalone
+./scripts/build-standalone.sh dist/standalone
+```
+
+You can inspect the `dist/standalone` folder and upload it to your static host if needed.
 
 ## 📖 Usage
 
