@@ -54,6 +54,11 @@ jobs:
           mkdir -p $OUT/loader
           cp -r chat-widget-iframe/dist/* $OUT/iframe/ || true
           cp chat-widget-loader/dist/loader.min.js $OUT/loader/ || true
+          # Create a 'latest' copy so consumers can use /latest/ URLs
+          mkdir -p out/latest/iframe
+          mkdir -p out/latest/loader
+          cp -r chat-widget-iframe/dist/* out/latest/iframe/ || true
+          cp chat-widget-loader/dist/loader.min.js out/latest/loader/ || true
           ls -R out
 
       - name: Deploy to gh-pages
@@ -63,3 +68,31 @@ jobs:
           publish_dir: out
           publish_branch: gh-pages
           commit_message: "Publish site for ${{ github.ref_name }}"
+
+      - name: Smoke test published pages
+        env:
+          OWNER: ${{ github.repository_owner }}
+          REPO: ${{ github.repository }}
+          VERSION: ${{ github.event.release.tag_name || github.ref_name }}
+        run: |
+          REPO_NAME=${REPO#*/}
+          PAGES_BASE="https://${OWNER}.github.io/${REPO_NAME}/${VERSION}"
+          LATEST_BASE="https://${OWNER}.github.io/${REPO_NAME}/latest"
+          echo "Checking ${PAGES_BASE} and ${LATEST_BASE}"
+          # retry helper
+          retry() {
+            local n=0
+            until [ $n -ge 12 ]
+            do
+              "$@" && break
+              n=$((n+1))
+              sleep 5
+            done
+            if [ $n -ge 12 ]; then
+              echo "Command failed after retries: $@"; exit 1
+            fi
+          }
+          retry curl -sfS ${PAGES_BASE}/loader/loader.min.js -o /dev/null
+          retry curl -sfS ${PAGES_BASE}/iframe/index.html -o /dev/null
+          retry curl -sfS ${LATEST_BASE}/loader/loader.min.js -o /dev/null
+          retry curl -sfS ${LATEST_BASE}/iframe/index.html -o /dev/null
