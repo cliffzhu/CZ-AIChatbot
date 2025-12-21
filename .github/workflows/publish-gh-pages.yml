@@ -1,0 +1,59 @@
+name: Publish to GitHub Pages
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install root deps
+        run: npm ci
+
+      - name: Build shared schema
+        run: |
+          cd chat-shared-schema
+          npm ci
+          npm run build
+
+      - name: Build iframe
+        run: |
+          cd chat-widget-iframe
+          npm ci
+          npm run build
+
+      - name: Build loader
+        run: |
+          cd chat-widget-loader
+          npm ci
+          npm run build
+
+      - name: Prepare publish directory
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/}
+          OUT=out/${VERSION}
+          mkdir -p $OUT/iframe
+          mkdir -p $OUT/loader
+          cp -r chat-widget-iframe/dist/* $OUT/iframe/ || true
+          cp chat-widget-loader/dist/loader.min.js $OUT/loader/ || true
+          ls -R out
+
+      - name: Deploy to gh-pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: out
+          publish_branch: gh-pages
+          commit_message: "Publish site for ${{ github.ref_name }}"

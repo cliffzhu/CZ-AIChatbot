@@ -104,8 +104,12 @@ Widgets are configured via the backend `/widget/:id/config` endpoint:
     "primaryHover": "#1e4fd8",
     "bg": "#ffffff",
     "bgSoft": "#f3f4f6",
-    "text": "#111827",
+ **Puppeteer for E2E testing**
     "muted": "#6b7280",
+## Issue #25 Summary
+
+Added a concise summary for Content Security Policy (CSP) recommendations, a versioned GitHub Pages/static CDN structure, and fork customization guidance: see [docs/issue-25-summary.md](docs/issue-25-summary.md).
+
     "border": "#e5e7eb",
     "radius": "14px",
     "radiusSm": "10px",

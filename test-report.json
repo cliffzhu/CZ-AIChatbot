@@ -1,5 +1,5 @@
 {
-  "timestamp": "2025-12-21T04:40:40.250Z",
+  "timestamp": "2025-12-21T04:57:02.703Z",
   "summary": {
     "total": 7,
     "passed": 7,
@@ -9,8 +9,8 @@
     {
       "name": "Widget Loading",
       "status": "PASS",
-      "duration": 2298,
-      "message": "Widget loaded in 2298ms"
+      "duration": 2213,
+      "message": "Widget loaded in 2213ms"
     },
     {
       "name": "Theme Application",
@@ -40,24 +40,24 @@
     {
       "name": "Performance Metrics",
       "status": "PASS",
-      "message": "JS Heap: 2.80MB"
+      "message": "JS Heap: 2.85MB"
     }
   ],
   "metrics": {
-    "Timestamp": 4962.136122,
+    "Timestamp": 5944.589476,
     "Documents": 5,
     "Frames": 2,
     "JSEventListeners": 159,
     "Nodes": 158,
-    "LayoutCount": 8,
-    "RecalcStyleCount": 8,
-    "LayoutDuration": 0.040565,
-    "RecalcStyleDuration": 0.004199,
-    "ScriptDuration": 0.056699,
-    "TaskDuration": 0.198796,
-    "JSHeapUsedSize": 2931040,
+    "LayoutCount": 10,
+    "RecalcStyleCount": 12,
+    "LayoutDuration": 0.04627,
+    "RecalcStyleDuration": 0.005975,
+    "ScriptDuration": 0.047095,
+    "TaskDuration": 0.164277,
+    "JSHeapUsedSize": 2987912,
     "JSHeapTotalSize": 4194304,
-    "timestamp": "2025-12-21T04:40:40.250Z"
+    "timestamp": "2025-12-21T04:57:02.702Z"
   },
   "errors": []
 }
