@@ -210,17 +210,51 @@ function App({}: AppProps) {
     window.addEventListener('orientationchange', handleOrientationChange);
     document.addEventListener('touchmove', preventBodyScroll, { passive: false });
 
-    // Listen for theme updates
+    // Listen for theme updates and test commands
     const handleMessage = (event: MessageEvent) => {
+      if (!event.data || !event.data.type) return
+
       if (event.data.type === 'setTheme') {
-        // Apply theme variables to :root
         const theme: Theme = event.data.theme
         Object.entries(theme).forEach(([key, value]) => {
           document.documentElement.style.setProperty(`--${key}`, String(value))
         })
+        // Notify parent that theme was applied
+        try {
+          (event.source as Window)?.postMessage({ type: 'themeApplied', theme }, event.origin)
+        } catch (e) {
+          // ignore
+        }
+      }
+
+      if (event.data.type === 'simulateUserMessage') {
+        const content = String(event.data.content || '')
+        // Send message as if user typed it
+        sendMessage(content).then(() => {
+          try {
+            (event.source as Window)?.postMessage({ type: 'messageSent', content }, event.origin)
+          } catch (e) {}
+        }).catch((err) => {
+          try {
+            (event.source as Window)?.postMessage({ type: 'messageSendFailed', error: String(err) }, event.origin)
+          } catch (e) {}
+        })
+      }
+
+      if (event.data.type === 'getWidgetMetrics') {
+        const el = document.querySelector('.chatbot-widget') as HTMLElement | null
+        const width = el ? window.getComputedStyle(el).width : null
+        try {
+          (event.source as Window)?.postMessage({ type: 'widgetMetrics', width }, event.origin)
+        } catch (e) {}
       }
     }
     window.addEventListener('message', handleMessage)
+
+    // Notify parent that app is ready for test messages
+    try {
+      window.parent.postMessage({ type: 'appReady' }, '*')
+    } catch (e) {}
 
     return () => {
       if ('visualViewport' in window && window.visualViewport) {
@@ -352,6 +386,10 @@ function App({}: AppProps) {
           } else if (event.type === 'message' && event.message) {
             setMessages(prev => [...prev, event.message!]);
             logger.info('Received message', { type: event.message!.type });
+            // Notify parent about received message (for tests)
+            try {
+              window.parent.postMessage({ type: 'receivedMessage', message: event.message }, '*')
+            } catch (e) {}
           } else if (event.type === 'done') {
             setIsStreaming(false);
             setAbortController(null);
@@ -362,6 +400,9 @@ function App({}: AppProps) {
             setIsStreaming(false);
             setAbortController(null);
             logger.error('Streaming error', event.error);
+            try {
+              window.parent.postMessage({ type: 'streamError', error: event.error }, '*')
+            } catch (e) {}
           }
         },
         token || undefined,
@@ -372,6 +413,9 @@ function App({}: AppProps) {
       setMessages(prev => [...prev, { type: 'error', code: 'network_error', message: 'Failed to send message' }]);
       setIsStreaming(false);
       setAbortController(null);
+      try {
+        window.parent.postMessage({ type: 'streamError', error: String(error) }, '*')
+      } catch (e) {}
     }
   }
 
