@@ -184,6 +184,29 @@ git push origin v1.2.0
 
 - After publishing, confirm the files are available at `https://<user>.github.io/<repo>/v1.2.0/iframe/` and `.../v1.2.0/loader/` or from your configured CDN.
 
+Standalone Distribution
+
+- The repo can publish a `standalone` distribution that bundles the `iframe` app and `loader` together under a single path. The workflow will publish this under `/vX.Y.Z/standalone/` and `/latest/standalone/`.
+
+Example standalone files:
+
+- `https://<user>.github.io/<repo>/v1.2.0/standalone/iframe/index.html`
+- `https://<user>.github.io/<repo>/v1.2.0/standalone/loader/loader.min.js`
+
+To prepare the standalone build locally:
+
+```bash
+# Build components
+cd chat-shared-schema && npm ci && npm run build
+cd ../chat-widget-iframe && npm ci && npm run build
+cd ../chat-widget-loader && npm ci && npm run build
+
+# Assemble standalone
+./scripts/build-standalone.sh dist/standalone
+```
+
+You can inspect the `dist/standalone` folder and upload it to your static host if needed.
+
 ## 📖 Usage
 
 ### Basic Integration

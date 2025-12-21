@@ -42,6 +42,11 @@ jobs:
           npm ci
           npm run build
 
+      - name: Build standalone distribution
+        run: |
+          chmod +x scripts/build-standalone.sh || true
+          ./scripts/build-standalone.sh dist/standalone
+
       - name: Prepare publish directory
         run: |
           if [ "${GITHUB_EVENT_NAME}" = "release" ]; then
@@ -54,11 +59,16 @@ jobs:
           mkdir -p $OUT/loader
           cp -r chat-widget-iframe/dist/* $OUT/iframe/ || true
           cp chat-widget-loader/dist/loader.min.js $OUT/loader/ || true
+          # copy standalone distribution
+          mkdir -p $OUT/standalone
+          cp -r dist/standalone/* $OUT/standalone/ || true
           # Create a 'latest' copy so consumers can use /latest/ URLs
           mkdir -p out/latest/iframe
           mkdir -p out/latest/loader
           cp -r chat-widget-iframe/dist/* out/latest/iframe/ || true
           cp chat-widget-loader/dist/loader.min.js out/latest/loader/ || true
+          mkdir -p out/latest/standalone
+          cp -r dist/standalone/* out/latest/standalone/ || true
           ls -R out
 
       - name: Deploy to gh-pages
