@@ -1,35 +1,95 @@
 #!/usr/bin/env bash
-# Simple smoke test to verify published GitHub Pages artifacts
+# Simple, configurable smoke test to verify published GitHub Pages artifacts
 set -euo pipefail
 
-OWNER=${1:-}
-REPO_NAME=${2:-}
-VERSION=${3:-}
+# Defaults
+WAIT_SECS=30
+ATTEMPTS=18
+DELAY=10
 
-if [ -z "$OWNER" ] || [ -z "$REPO_NAME" ] || [ -z "$VERSION" ]; then
-  echo "Usage: $0 <owner> <repo> <version>"
+usage() {
+  cat <<EOF
+Usage: $0 <owner> <repo> <version> [--wait N] [--attempts N] [--delay N]
+  --wait     initial wait before checks (seconds), default ${WAIT_SECS}
+  --attempts retry attempts per check, default ${ATTEMPTS}
+  --delay    delay between retries (seconds), default ${DELAY}
+EOF
+}
+
+if [ "$#" -lt 3 ]; then
+  usage
   exit 2
 fi
+
+OWNER=$1
+REPO_NAME=$2
+VERSION=$3
+shift 3
+
+# parse optional flags
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --wait)
+      WAIT_SECS=${2:-$WAIT_SECS}
+      shift 2
+      ;;
+    --attempts)
+      ATTEMPTS=${2:-$ATTEMPTS}
+      shift 2
+      ;;
+    --delay)
+      DELAY=${2:-$DELAY}
+      shift 2
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "Unknown arg: $1" >&2
+      usage
+      exit 2
+      ;;
+  esac
+done
 
 PAGES_BASE="https://${OWNER}.github.io/${REPO_NAME}/${VERSION}"
 LATEST_BASE="https://${OWNER}.github.io/${REPO_NAME}/latest"
 
-echo "Checking ${PAGES_BASE} and ${LATEST_BASE}"
+echo "Waiting ${WAIT_SECS}s for GitHub Pages to publish..."
+sleep ${WAIT_SECS}
+
+echo "Checking ${PAGES_BASE} and ${LATEST_BASE} (attempts=${ATTEMPTS}, delay=${DELAY}s)"
 
 retry() {
   local n=0
-  until [ $n -ge 24 ]
+  local cmd
+  cmd=("$@")
+  until [ $n -ge "$ATTEMPTS" ]
   do
-    "$@" && return 0
+    if "${cmd[@]}"; then
+      echo "Succeeded: ${cmd[*]}"
+      return 0
+    fi
     n=$((n+1))
-    sleep 5
+    echo "Attempt $n/${ATTEMPTS} failed for: ${cmd[*]} -- sleeping ${DELAY}s..."
+    sleep ${DELAY}
   done
+  echo "Command failed after ${ATTEMPTS} attempts: ${cmd[*]}" >&2
   return 1
 }
 
-retry curl -sfS ${PAGES_BASE}/loader/loader.min.js -o /dev/null || { echo "Failed to fetch loader"; exit 1; }
-retry curl -sfS ${PAGES_BASE}/iframe/index.html -o /dev/null || { echo "Failed to fetch iframe index"; exit 1; }
-retry curl -sfS ${LATEST_BASE}/loader/loader.min.js -o /dev/null || { echo "Failed to fetch latest loader"; exit 1; }
-retry curl -sfS ${LATEST_BASE}/iframe/index.html -o /dev/null || { echo "Failed to fetch latest iframe index"; exit 1; }
+check_or_exit() {
+  local url=$1
+  if ! retry curl -sfS "$url" -o /dev/null; then
+    echo "Failed to fetch $url" >&2
+    exit 1
+  fi
+}
+
+check_or_exit "${PAGES_BASE}/loader/loader.min.js"
+check_or_exit "${PAGES_BASE}/iframe/index.html"
+check_or_exit "${LATEST_BASE}/loader/loader.min.js"
+check_or_exit "${LATEST_BASE}/iframe/index.html"
 
 echo "Smoke test passed: published artifacts are reachable."
