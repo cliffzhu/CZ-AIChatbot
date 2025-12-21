@@ -168,6 +168,22 @@ The widget uses versioned CDN distribution for optimal performance:
 - **Iframe**: `https://cdn.yourdomain.com/v1/iframe/`
 - **Assets**: Cached with long TTL, versioned URLs for cache busting
 
+### Publishing via Tag or Release
+
+- Create a tag matching `vX.Y.Z` and push it to trigger the GitHub Actions workflow which will build artifacts and publish them to the `gh-pages` branch under `out/vX.Y.Z/`.
+
+Example:
+
+```bash
+# create and push a tag
+git tag v1.2.0
+git push origin v1.2.0
+```
+
+- Alternatively, create a GitHub Release (published) for the tag — the workflow also triggers on release `published` events.
+
+- After publishing, confirm the files are available at `https://<user>.github.io/<repo>/v1.2.0/iframe/` and `.../v1.2.0/loader/` or from your configured CDN.
+
 ## 📖 Usage
 
 ### Basic Integration

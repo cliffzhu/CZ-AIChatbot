@@ -4,6 +4,8 @@ on:
   push:
     tags:
       - 'v*'
+  release:
+    types: [published]
 
 jobs:
   build-and-deploy:
@@ -42,7 +44,11 @@ jobs:
 
       - name: Prepare publish directory
         run: |
-          VERSION=${GITHUB_REF#refs/tags/}
+          if [ "${GITHUB_EVENT_NAME}" = "release" ]; then
+            VERSION=${GITHUB_REF_NAME}
+          else
+            VERSION=${GITHUB_REF#refs/tags/}
+          fi
           OUT=out/${VERSION}
           mkdir -p $OUT/iframe
           mkdir -p $OUT/loader
