@@ -39,9 +39,12 @@ jobs:
           body: "Automated release from tag ${{ github.ref_name }}"
           draft: false
           prerelease: false
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload release asset
         uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: release/chat-widget-iframe-${{ github.ref_name }}.zip
