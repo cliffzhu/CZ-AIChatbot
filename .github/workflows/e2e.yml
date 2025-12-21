@@ -1,0 +1,51 @@
+name: E2E Tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install system deps for Chromium
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libnss3 libatk1.0-0 libx11-xcb1 libxcomposite1 libxrandr2 libxdamage1 libgbm1 libxss1 libxtst6 fonts-liberation libappindicator3-1 libcups2
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build iframe
+        working-directory: ./chat-widget-iframe
+        run: npm ci && npm run build
+
+      - name: Copy assets to root for test server
+        run: |
+          mkdir -p assets
+          cp -r chat-widget-iframe/dist/assets/* assets/ || true
+
+      - name: Start static server
+        run: npx http-server -p 8080 . &
+
+      - name: Run E2E harness
+        env:
+          PUPPETEER_HEADLESS: true
+        run: node test-harness.js
+
+      - name: Upload test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-report
+          path: test-report.json
