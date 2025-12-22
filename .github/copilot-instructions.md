@@ -17,7 +17,7 @@ Security-first: Zero trust frontend, backend-enforced auth, strict CORS, no HTML
 - **Setup**: Create separate repos for loader, iframe, backend, schema. Use TypeScript, build to minified JS for loader.
 - **Build**: Loader: Single bundled JS. Iframe: React app with CSS variables. Backend: Edge functions.
 - **Testing**: E2E harness for embedding, network failures, origin validation. Use AbortController for streaming cancels.
-- **Deployment**: Versioned CDN for loader, canary for backend. CI via GitHub Actions.
+- **Deployment**: Versioned CDN for loader, canary for backend. CI via GitHub Actions. Test the folder and file existing after deployment.
 
 ## Conventions & Patterns
 - **Auth**: Prefer HttpOnly cookies over Bearer tokens; refresh on 401. No localStorage for tokens.
