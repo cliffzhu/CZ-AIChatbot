@@ -221,6 +221,33 @@ Add this script tag to your HTML:
 </script>
 ```
 
+### Quick Test Embedding (GitHub Pages)
+
+If you want to quickly test the hosted loader from this repository's GitHub Pages, you can use the `latest` URL. Example:
+
+```html
+<script
+  src="https://cliffzhu.github.io/CZ-AIChatbot/latest/loader/loader.min.js"
+  data-widget-id="your-widget-id"
+  data-position="bottom-right">
+</script>
+```
+
+You can also inject the loader from your browser console on any page for quick testing (useful for prototyping). Example one-liner:
+
+```javascript
+var s=document.createElement('script');s.src='https://cliffzhu.github.io/CZ-AIChatbot/latest/loader/loader.min.js';s.setAttribute('data-widget-id','your-widget-id');s.setAttribute('data-position','bottom-right');document.head.appendChild(s);
+```
+
+Caveats and notes:
+
+- The loader will attempt to insert the iframe and initialize the widget, but functionality may be limited if the backend enforces `allowedOrigins` or requires authentication tokens.
+- Many sites use a strict Content Security Policy (CSP) which can block loading external scripts; console injection will fail on such pages.
+- Mixed-content restrictions (HTTP page loading an HTTPS script or vice-versa) can also block the loader.
+- Use console injection only for quick local testing — for production embed the loader from a trusted CDN or your own domain and configure allowed origins in your backend.
+
+If you need a reproducible test environment, open [test-integration.html](test-integration.html) or run a local static server and embed the loader there.
+
 ### Advanced Configuration
 
 ```html
