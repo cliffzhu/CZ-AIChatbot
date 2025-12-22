@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>CZ-AIChatbot — Demo</title>
+    <style>
+      body { font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial; margin: 24px; }
+      main { max-width: 720px; margin: 0 auto; }
+      .controls { margin-top: 16px; }
+      .note { color: #444; font-size: 0.95rem; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>CZ-AIChatbot — Embedded Demo</h1>
+      <p class="note">This page demonstrates the chat widget loader. A floating bubble button appears in the bottom-right — click it to open the chat iframe.</p>
+
+      <div class="controls">
+        <p class="note">If you don't see the bubble, ensure the loader script path is reachable: <code>latest/loader/loader.min.js</code>.</p>
+      </div>
+    </main>
+
+    <!-- Loader: points at the packaged iframe in docs/latest/iframe -->
+    <script src="./latest/loader/loader.min.js"
+            data-widget-id="demo-widget"
+            data-host="./latest/iframe/index.html"
+            data-position="bottom-right">
+    </script>
+
+    <!-- Optional: small helper to open the widget programmatically for demos -->
+    <script>
+      (function () {
+        // If loader auto-initializes from the script tag, no extra work is required.
+        // Expose a simple helper on the window for manual control in the console.
+        try {
+          // `ChatWidgetLoader` is defined by the loader bundle in the global scope.
+          if (typeof ChatWidgetLoader === 'function') {
+            // create a programmable instance if not already present
+            if (!window.__chatWidgetDemo) {
+              window.__chatWidgetDemo = new ChatWidgetLoader({
+                widgetId: 'demo-widget',
+                host: './latest/iframe/index.html',
+                position: 'bottom-right'
+              });
+            }
+            // helpers
+            window.chatDemoOpen = function () { window.__chatWidgetDemo && window.__chatWidgetDemo.setOpen(true); };
+            window.chatDemoClose = function () { window.__chatWidgetDemo && window.__chatWidgetDemo.setOpen(false); };
+          }
+        } catch (e) {
+          // silent fallback for environments where loader bundle doesn't expose the class
+        }
+      })();
+    </script>
+  </body>
+</html>
